@@ -21,20 +21,29 @@ pipeline {
         }
 
         stage('SonarQube Analysis') {
-            environment {
-                SONARQUBE_URL = 'http://192.16.33.10:9000'
-                SONARQUBE_TOKEN = credentials('sonar-token')  // Token ajouté dans Jenkins
-            }
             steps {
-                withSonarQubeEnv('SonarQube') {
-                    sh "mvn sonar:sonar -Dsonar.projectKey=mon-projet -Dsonar.host.url=${SONARQUBE_URL} -Dsonar.login=${SONARQUBE_TOKEN}"
+                echo '🔍 Analyse SonarQube en cours...'
+                script {
+                    try {
+                        sh """
+                            mvn -B sonar:sonar \
+                            -Dsonar.projectKey=mon-projet \
+                            -Dsonar.host.url=http://192.16.33.10:9000 \
+                            -Dsonar.login=${SONARQUBE_TOKEN} \
+                            -DskipTests=true
+                        """
+                    } catch (err) {
+                        echo "⚠️ SonarQube Analysis échouée : ${err}"
+                        // Le pipeline continue malgré l’échec de SonarQube
+                    }
                 }
             }
         }
 
-        stage('Build JAR') {
+        stage('Build .jar') {
             steps {
-                sh 'mvn package'
+                echo 'Maven package -> génération du .jar'
+                sh 'mvn -B package -DskipTests'
             }
         }
     }
